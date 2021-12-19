@@ -1,111 +1,29 @@
 create table product
 (
-    id               serial,
-    type             varchar default 'simple'::character varying,
+    id               serial primary key,
+    type             varchar default 'simple',
     delivery         varchar,
-    indexed_datetime timestamp,
-    constraint product_pk
-        primary key (id)
+    indexed_datetime timestamp
 );
-
-alter table product
-    owner to postgres;
-
-create unique index product_id_uindex
-    on product (id);
 
 create table vector_class
 (
-    id                serial,
+    id                serial primary key,
     short_description varchar,
     long_description  text,
-    color             integer[],
-    constraint vector_class_pk
-        primary key (id)
+    color             integer[]
 );
-
-alter table vector_class
-    owner to postgres;
-
-create unique index vector_class_id_uindex
-    on vector_class (id);
-
-create table vector
-(
-    id       serial,
-    class_id integer default nextval('vector_class_id_seq1'::regclass) not null,
-    image_id serial,
-    other    json,
-    geometry geometry,
-    constraint vector_pk
-        primary key (id),
-    constraint vector_vector_class_id_fk
-        foreign key (class_id) references vector_class
-);
-
-alter table vector
-    owner to postgres;
-
-create unique index vector_id_uindex
-    on vector (id);
-
-create table author
-(
-    id       serial,
-    name     character varying[],
-    contacts json,
-    constraint author_pk
-        primary key (id)
-);
-
-alter table author
-    owner to postgres;
-
-create unique index author_id_uindex
-    on author (id);
-
-create table vector_author
-(
-    vector_id serial,
-    author_id serial,
-    model_id  serial,
-    constraint vector_author_vector_id_fk
-        foreign key (vector_id) references vector,
-    constraint vector_author_author_id_fk
-        foreign key (author_id) references author
-);
-
-alter table vector_author
-    owner to postgres;
-
-create table dataset
-(
-    id        serial,
-    parent_id serial,
-    constraint dataset_pkey
-        primary key (id),
-    constraint dataset_parent_id_fkey
-        foreign key (parent_id) references dataset
-);
-
-alter table dataset
-    owner to postgres;
 
 create table source
 (
-    id     serial,
+    id     serial primary key,
     name   varchar not null,
-    fields json    not null,
-    constraint source_pk
-        primary key (id)
+    fields json    not null
 );
-
-alter table source
-    owner to postgres;
 
 create table image
 (
-    id                 serial,
+    id                 serial primary key,
     external_id        varchar not null,
     source_id          integer not null,
     sat                varchar not null,
@@ -118,44 +36,51 @@ create table image
     ql_path            varchar,
     other_paths        character varying[],
     product_id         serial,
-    constraint image_pk
-        primary key (id),
-    constraint image_product_id_fk
-        foreign key (product_id) references product,
-    constraint image_source_id_fk
-        foreign key (source_id) references source
+    foreign key (product_id) references product(id),
+    foreign key (source_id) references source(id)
 );
 
-alter table image
-    owner to postgres;
+create table vector
+(
+    id       serial primary key,
+    class_id serial not null,
+    image_id serial,
+    other    json,
+    geometry geometry,
+    foreign key (class_id) references vector_class(id),
+    foreign key (image_id) references image(id)
+);
 
-create unique index image_id_uindex
-    on image (id);
+create table author
+(
+    id       serial primary key,
+    name     varchar[3],
+    contacts json
+);
+
+create table dataset
+(
+    id        serial primary key,
+    parent_id serial,
+    foreign key (parent_id) references dataset(id)
+);
 
 create table image_planet
 (
     id        serial,
     cloud_map geometry,
-    constraint image_planet_image_id_fk
-        foreign key (id) references image
-            on update cascade on delete cascade
+    foreign key (id) references image(id)
+        on update cascade on delete cascade
 );
-
-alter table image_planet
-    owner to postgres;
 
 create table image_dg
 (
     id            serial,
     cloud_map     geometry,
     stereo_number integer,
-    constraint image_dg_image_id_fk
-        foreign key (id) references image
-            on update cascade on delete cascade
+    foreign key (id) references image(id)
+        on update cascade on delete cascade
 );
-
-alter table image_dg
-    owner to postgres;
 
 create table image_ntsomz
 (
@@ -164,68 +89,49 @@ create table image_ntsomz
     scene    integer not null,
     selected boolean not null,
     defects  character varying[],
-    constraint image_ntsomz_image_id_fk
-        foreign key (id) references image
-            on update cascade on delete cascade
+    foreign key (id) references image(id)
+        on update cascade on delete cascade
 );
-
-alter table image_ntsomz
-    owner to postgres;
 
 create table vector_image_dataset
 (
-    vector_id  integer default nextval('vector_dataset_vector_id_seq'::regclass)  not null,
-    dataset_id integer default nextval('vector_dataset_dataset_id_seq'::regclass) not null,
-    image_id   integer                                                            not null,
-    constraint vector_dataset_vector_id_fkey
-        foreign key (vector_id) references vector,
-    constraint vector_dataset_dataset_id_fkey
-        foreign key (dataset_id) references dataset,
-    constraint vector_image_dataset_image_id_fk
-        foreign key (image_id) references image
+    vector_id  integer not null,
+    dataset_id integer not null,
+    image_id   integer not null,
+    foreign key (vector_id) references vector(id),
+    foreign key (dataset_id) references dataset(id),
+    foreign key (image_id) references image(id)
 );
-
-alter table vector_image_dataset
-    owner to postgres;
-
-create unique index source_id_uindex
-    on source (id);
 
 create table experiment
 (
-    id         serial,
+    id         serial primary key,
     author_id  serial,
     datetime   timestamp,
     git_commit varchar not null,
     dataset_id serial,
     parent_id  serial,
-    constraint experiment_pkey
-        primary key (id),
-    constraint experiment_parent_id_fkey
-        foreign key (parent_id) references experiment,
-    constraint experiment_dataset_id_fkey
-        foreign key (dataset_id) references dataset,
-    constraint experiment_author_id_fkey
-        foreign key (author_id) references author
+    foreign key (parent_id) references experiment(id),
+    foreign key (dataset_id) references dataset(id),
+    foreign key (author_id) references author(id)
 );
-
-alter table experiment
-    owner to postgres;
 
 create table model
 (
-    id            serial,
+    id            serial primary key,
     experiment_id serial,
     type          varchar             not null,
     paths         character varying[] not null,
     other         json,
-    constraint model_pkey
-        primary key (id),
-    constraint model_experiment_id_fkey
-        foreign key (experiment_id) references experiment
+    foreign key (experiment_id) references experiment(id)
 );
 
-alter table model
-    owner to postgres;
-
-
+create table vector_author
+(
+    vector_id serial,
+    author_id serial,
+    model_id  serial,
+    foreign key (vector_id) references vector(id),
+    foreign key (author_id) references author(id),
+    foreign key (model_id) references model(id)
+);
