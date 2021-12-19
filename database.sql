@@ -61,8 +61,7 @@ create table author
 create table dataset
 (
     id        serial primary key,
-    parent_id serial,
-    foreign key (parent_id) references dataset(id)
+    parent_id integer references dataset(id)
 );
 
 create table image_planet
@@ -110,7 +109,7 @@ create table experiment
     datetime   timestamp,
     git_commit varchar not null,
     dataset_id serial,
-    parent_id  serial,
+    parent_id  integer,
     foreign key (parent_id) references experiment(id),
     foreign key (dataset_id) references dataset(id),
     foreign key (author_id) references author(id)
